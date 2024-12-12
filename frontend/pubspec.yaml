@@ -15,6 +15,11 @@ dependencies:
   #UI
   cupertino_icons: ^1.0.8
 
+  # functionality
+  web_socket_channel: ^3.0.1
+  http: ^1.2.2
+  shared_preferences: ^2.3.3
+
   # launcher
   icons_launcher: ^3.0.0
   flutter_native_splash: ^2.4.3
