@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/data/app_config.dart';
+import 'package:frontend/screens/main_screen/main_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -32,7 +33,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200) {
         if (mounted) {
-          debugPrint('Login success');
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => MainScreen(
+                username: _usernameController.text,
+              ),
+            ),
+          );
         }
       } else {
         final error = json.decode(response.body)['error'];
@@ -53,7 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Login to Chat'),
+        title: const Text('Login', style: TextStyle(color: Colors.white)),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
