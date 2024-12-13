@@ -42,9 +42,10 @@ class _MainScreenState extends State<MainScreen> {
         setState(() {
           _messages.add(ChatMessage.fromJson(data, widget.username));
         });
-        _scrollToBottom();
       } catch (e) {
         debugPrint('Error processing message: $e');
+      } finally {
+        _scrollToBottom();
       }
     };
 
@@ -80,24 +81,26 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chat'),
+        title: const Text('Chat', style: TextStyle(color: Colors.white)),
         backgroundColor: Theme.of(context).colorScheme.primary,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () {
               _websocketService.disconnect();
               Navigator.of(context).pushReplacement(
@@ -107,41 +110,46 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(8),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages[index];
-                return MessageBubble(message: message);
-              },
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              boxShadow: [
-                BoxShadow(
-                  offset: const Offset(0, -2),
-                  blurRadius: 4,
-                  color: Colors.black.withOpacity(0.1),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Container(
+                color: Colors.yellow,
+                child: ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(8),
+                  itemCount: _messages.length,
+                  itemBuilder: (context, index) {
+                    final message = _messages[index];
+                    return MessageBubble(message: message);
+                  },
                 ),
-              ],
+              ),
             ),
-            child: SafeArea(
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                boxShadow: [
+                  BoxShadow(
+                    offset: const Offset(0, -2),
+                    blurRadius: 4,
+                    color: Colors.black.withOpacity(0.1),
+                  ),
+                ],
+              ),
               child: Row(
                 children: [
                   Expanded(
                     child: TextField(
                       controller: _messageController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'Type a message',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 8,
                         ),
@@ -160,8 +168,8 @@ class _MainScreenState extends State<MainScreen> {
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
