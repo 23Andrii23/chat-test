@@ -1,136 +1,161 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/data/app_config.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:frontend/screens/login_screen/repository/login_screen.repository.riverpod.dart';
 import 'package:frontend/screens/main_screen/main_screen.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class LoginScreen extends ConsumerWidget {
+  LoginScreen({super.key});
+
+  final _formKey = GlobalKey<FormState>();
+  final _usernameController = TextEditingController();
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final loginProvider = ref.watch(loginScreenRepositoryProvider);
 
-class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _usernameController = TextEditingController();
-  bool _isLoading = false;
-  final _formKey = GlobalKey<FormState>();
-
-  Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final response = await http.post(
-        Uri.parse('${AppConfig.httpUrl}/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'username': _usernameController.text}),
-      );
-
-      if (response.statusCode == 200) {
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => MainScreen(
-                username: _usernameController.text,
-              ),
-            ),
-          );
-        }
-      } else {
-        final error = json.decode(response.body)['error'];
-        if (mounted) {
+    ref.listen(loginScreenRepositoryProvider, (previous, next) {
+      next.whenOrNull(
+        error: (error, _) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(error ?? 'Login failed'),
+              content: Text(error.toString()),
               backgroundColor: Colors.red,
             ),
           );
-        }
-        setState(() => _isLoading = false);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Connection error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      setState(() => _isLoading = false);
-    }
-  }
+        },
+      );
+    });
 
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).primaryColor,
         title: const Text('Login', style: TextStyle(color: Colors.white)),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
+      body: loginProvider.when(
+        data: (_) => Padding(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextFormField(
+                  controller: _usernameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Username',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person),
+                  ),
+                  textInputAction: TextInputAction.go,
+                  onFieldSubmitted: (_) => _handleLogin(context, ref),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a username';
+                    }
+                    if (value.length < 3) {
+                      return 'Username must be at least 3 characters long';
+                    }
+                    if (value.length > 20) {
+                      return 'Username must be less than 20 characters';
+                    }
+                    if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
+                      return 'Username can only contain letters, numbers and underscore';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => _handleLogin(context, ref),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(180, 48),
+                  ),
+                  child: const Text('Connect'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        loading: () => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              TextFormField(
-                controller: _usernameController,
-                decoration: InputDecoration(
-                  labelText: 'Username',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(32),
-                  ),
-                  prefixIcon: const Icon(Icons.person),
-                ),
-                enabled: !_isLoading,
-                textInputAction: TextInputAction.go,
-                onFieldSubmitted: (_) => _login(),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a username';
-                  }
-                  if (value.length < 3) {
-                    return 'Username must be at least 3 characters long';
-                  }
-                  if (value.length > 20) {
-                    return 'Username must be less than 20 characters';
-                  }
-                  if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
-                    return 'Username can only contain letters, numbers and underscore';
-                  }
-                  return null;
-                },
-              ),
+              const CircularProgressIndicator(),
               const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _login,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(180, 48),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text('Connect'),
+              Text(
+                'Connecting...',
+                style: Theme.of(context).textTheme.titleMedium,
               ),
             ],
+          ),
+        ),
+        error: (_, __) => Padding(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextFormField(
+                  controller: _usernameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Username',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person),
+                  ),
+                  textInputAction: TextInputAction.go,
+                  onFieldSubmitted: (_) => _handleLogin(context, ref),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a username';
+                    }
+                    if (value.length < 3) {
+                      return 'Username must be at least 3 characters long';
+                    }
+                    if (value.length > 20) {
+                      return 'Username must be less than 20 characters';
+                    }
+                    if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
+                      return 'Username can only contain letters, numbers and underscore';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => _handleLogin(context, ref),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(180, 48),
+                  ),
+                  child: const Text('Try Again'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  @override
+  Future<void> _handleLogin(BuildContext context, WidgetRef ref) async {
+    if (_formKey.currentState!.validate()) {
+      final success = await ref
+          .read(loginScreenRepositoryProvider.notifier)
+          .login(_usernameController.text);
+
+      if (success && context.mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => MainScreen(
+              username: _usernameController.text,
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   void dispose() {
     _usernameController.dispose();
-    super.dispose();
   }
 }
