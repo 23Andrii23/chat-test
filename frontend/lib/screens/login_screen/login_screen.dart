@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/screens/login_screen/repository/login_screen.repository.riverpod.dart';
+import 'package:frontend/screens/login_screen/widgets/login_input.dart';
 import 'package:frontend/screens/main_screen/main_screen.dart';
 
 class LoginScreen extends ConsumerWidget {
@@ -39,30 +40,9 @@ class LoginScreen extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                TextFormField(
-                  controller: _usernameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Username',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person),
-                  ),
-                  textInputAction: TextInputAction.go,
-                  onFieldSubmitted: (_) => _handleLogin(context, ref),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a username';
-                    }
-                    if (value.length < 3) {
-                      return 'Username must be at least 3 characters long';
-                    }
-                    if (value.length > 20) {
-                      return 'Username must be less than 20 characters';
-                    }
-                    if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
-                      return 'Username can only contain letters, numbers and underscore';
-                    }
-                    return null;
-                  },
+                LoginInput(
+                  textEditingController: _usernameController,
+                  onSend: () => _handleLogin(context, ref),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
@@ -96,30 +76,9 @@ class LoginScreen extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                TextFormField(
-                  controller: _usernameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Username',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person),
-                  ),
-                  textInputAction: TextInputAction.go,
-                  onFieldSubmitted: (_) => _handleLogin(context, ref),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a username';
-                    }
-                    if (value.length < 3) {
-                      return 'Username must be at least 3 characters long';
-                    }
-                    if (value.length > 20) {
-                      return 'Username must be less than 20 characters';
-                    }
-                    if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
-                      return 'Username can only contain letters, numbers and underscore';
-                    }
-                    return null;
-                  },
+                LoginInput(
+                  textEditingController: _usernameController,
+                  onSend: () => _handleLogin(context, ref),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
