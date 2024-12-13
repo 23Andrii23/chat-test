@@ -1,17 +1,16 @@
 const express = require('express');
 const http = require('http');
 const { WebSocketServer } = require('ws');
-
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 
-// Зберігання активних з'єднань
+// Store active connections
 const connectedUsers = new Map();
 
 app.use(express.json());
 
-// Ендпоінт для логіну
+// Login endpoint
 app.post('/login', (req, res) => {
   const { username } = req.body;
   
@@ -19,7 +18,7 @@ app.post('/login', (req, res) => {
     return res.status(400).json({ error: 'Username is required' });
   }
   
-  // Перевіряємо чи користувач вже не залогінений
+  // Check if user is already logged in
   if (connectedUsers.has(username)) {
     return res.status(400).json({ error: 'Username already taken' });
   }
@@ -31,7 +30,7 @@ app.post('/login', (req, res) => {
   });
 });
 
-// Функція для розсилки повідомлень всім користувачам
+// Function to broadcast messages to all users
 function broadcastMessage(message, excludeUser = null) {
   connectedUsers.forEach((ws, username) => {
     if (username !== excludeUser && ws.readyState === ws.OPEN) {
@@ -40,7 +39,7 @@ function broadcastMessage(message, excludeUser = null) {
   });
 }
 
-// Обробка WebSocket підключення
+// Handle WebSocket connection
 server.on('upgrade', (request, socket, head) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
   const username = url.searchParams.get('username');
@@ -60,7 +59,7 @@ wss.on('connection', (ws, username) => {
   connectedUsers.set(username, ws);
   console.log(`User ${username} connected`);
 
-  // Відправляємо повідомлення про підключення нового користувача
+  // Send message about new user connection
   const connectMessage = JSON.stringify({
     type: 'system',
     message: `${username} joined the chat`,
@@ -71,18 +70,17 @@ wss.on('connection', (ws, username) => {
 
   ws.on('message', (message) => {
     try {
-      // Парсимо отримане повідомлення
+      // Parse received message
       const parsedMessage = JSON.parse(message);
       console.log(`Received message from ${username}:`, parsedMessage);
 
-      // Перевіряємо тип повідомлення
+      // Check message type
       switch (parsedMessage.type) {
         case 'message':
-          // Відправляємо повідомлення всім користувачам
+          // Send message to all users
           broadcastMessage(message.toString(), null);
           break;
-
-        // Можна додати інші типи повідомлень тут
+        // Can add other message types here
         default:
           console.log(`Unknown message type: ${parsedMessage.type}`);
       }
@@ -95,7 +93,7 @@ wss.on('connection', (ws, username) => {
     connectedUsers.delete(username);
     console.log(`User ${username} disconnected`);
 
-    // Відправляємо повідомлення про відключення користувача
+    // Send message about user disconnection
     const disconnectMessage = JSON.stringify({
       type: 'system',
       message: `${username} left the chat`,
@@ -105,7 +103,7 @@ wss.on('connection', (ws, username) => {
     broadcastMessage(disconnectMessage);
   });
 
-  // Обробка помилок з'єднання
+  // Handle connection errors
   ws.on('error', (error) => {
     console.error(`WebSocket error for user ${username}:`, error);
     connectedUsers.delete(username);
