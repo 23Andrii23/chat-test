@@ -114,17 +114,14 @@ class _MainScreenState extends State<MainScreen> {
         child: Column(
           children: [
             Expanded(
-              child: Container(
-                color: Colors.yellow,
-                child: ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(8),
-                  itemCount: _messages.length,
-                  itemBuilder: (context, index) {
-                    final message = _messages[index];
-                    return MessageBubble(message: message);
-                  },
-                ),
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(8),
+                itemCount: _messages.length,
+                itemBuilder: (context, index) {
+                  final message = _messages[index];
+                  return MessageBubble(message: message);
+                },
               ),
             ),
             Container(
