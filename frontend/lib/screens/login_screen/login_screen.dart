@@ -13,14 +13,11 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
-  String _errorMessage = '';
   bool _isLoading = false;
+  final _formKey = GlobalKey<FormState>();
 
   Future<void> _login() async {
-    if (_usernameController.text.isEmpty) {
-      setState(() => _errorMessage = 'Please enter a username');
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
@@ -43,16 +40,26 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } else {
         final error = json.decode(response.body)['error'];
-        setState(() {
-          _errorMessage = error ?? 'Login failed';
-          _isLoading = false;
-        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(error ?? 'Login failed'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        setState(() => _isLoading = false);
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Connection error: $e';
-        _isLoading = false;
-      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Connection error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      setState(() => _isLoading = false);
     }
   }
 
@@ -60,50 +67,62 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Theme.of(context).primaryColor,
         title: const Text('Login', style: TextStyle(color: Colors.white)),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: _usernameController,
-              decoration: const InputDecoration(
-                labelText: 'Username',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person),
-              ),
-              enabled: !_isLoading,
-              textInputAction: TextInputAction.go,
-              onSubmitted: (_) => _login(),
-            ),
-            const SizedBox(height: 16),
-            if (_errorMessage.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Text(
-                  _errorMessage,
-                  style: const TextStyle(color: Colors.red),
-                  textAlign: TextAlign.center,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextFormField(
+                controller: _usernameController,
+                decoration: InputDecoration(
+                  labelText: 'Username',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(32),
+                  ),
+                  prefixIcon: const Icon(Icons.person),
                 ),
+                enabled: !_isLoading,
+                textInputAction: TextInputAction.go,
+                onFieldSubmitted: (_) => _login(),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a username';
+                  }
+                  if (value.length < 3) {
+                    return 'Username must be at least 3 characters long';
+                  }
+                  if (value.length > 20) {
+                    return 'Username must be less than 20 characters';
+                  }
+                  if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
+                    return 'Username can only contain letters, numbers and underscore';
+                  }
+                  return null;
+                },
               ),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _login,
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 48),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _login,
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(180, 48),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text('Connect'),
               ),
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : const Text('Connect'),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
